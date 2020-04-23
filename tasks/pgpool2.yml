@@ -1,0 +1,172 @@
+- name: install pgpool2
+  register: pgpool2_installation
+  package:
+    name:
+      - pgpool2
+      - "{{ postgres_pckg }}-pgpool2"
+      - arping
+    state: present
+
+- name: service pgpool disabled
+  service:
+   name: "{{ pgpool2_service_name }}"
+   enabled: no
+
+- name: create .pcppass
+  when: postgres_user is defined and postgres_user_pass is defined
+  no_log: true
+  copy:
+    content: |
+      *:*:{{ postgres_user }}:{{ postgres_user_pass }}
+    dest: "/root/.pcppass"
+    mode: 0600
+
+- name: Copy pgpool2 config files
+  when: pgpool2_cfg_files_src is defined
+  copy:
+    src: "{{ pgpool2_cfg_files_src }}"
+    dest: "{{ pgppol2_cfg_dest }}/"
+    owner: postgres
+    group: postgres
+
+- name: set facts for pgpool2 template
+  set_fact:
+    pgpool2_backend_hostname: "{{ pgpool2_backend_hostname | default(ansible_default_ipv4.address) }}"
+    pgpool2_heartbeat_destination: "{{ pgpool2_heartbeat_destination | default(ansible_default_ipv4.address) }}"
+    pgpool2_other_pgpool_hostname: "{{ pgpool2_other_pgpool_hostname | default(ansible_default_ipv4.address) }}"
+    pgpool2_wd_hostname: "{{ pgpool2_other_pgpool_hostname | default(ansible_default_ipv4.address) }}"
+
+- name: config pgpool2.conf
+  when: pgppol2_cfg_src is defined
+  template:
+    src: "{{ pgppol2_cfg_src }}"
+    dest: "{{ pgppol2_cfg_dest }}"
+    owner: postgres
+    group: postgres
+    mode: 0640
+    backup: yes
+
+- include_tasks: pool_hba.yml
+
+- name: "Add {{ postgres_user }} line to pcp.conf"
+  lineinfile:
+    dest: '{{ pgpool2_cfg_path }}/pcp.conf'
+    create: yes
+    state: present
+    line: "{{ postgres_user }}:{{ postgres_user_pass | hash('md5') }}"
+    regexp: "^{{ postgres_user }}:"
+    owner: postgres
+    group: postgres
+    mode: 0640
+
+- name: copy failover script
+  when: pgpool2_failover_src is defined
+  template:
+    src: "{{ pgpool2_failover_src }}"
+    dest: "{{ pgpool2_failover_dest }}"
+    owner: postgres
+    group: postgres
+    mode: 0755
+
+- name: copy failback script
+  when: pgpool2_failback_src is defined
+  template:
+    src: "{{ pgpool2_failback_src }}"
+    dest: "{{ pgpool2_failback_dest }}"
+    owner: postgres
+    group: postgres
+    mode: 0755
+
+- name: copy recovery_1st_stage script
+  when: pgpool2_recovery_1st_stage_src is defined
+  template:
+    src: "{{ pgpool2_recovery_1st_stage_src }}"
+    dest: "{{ pgpool2_recovery_1st_stage_dest }}"
+    owner: postgres
+    group: postgres
+    mode: 0755
+
+- name: copy pgpool_remote_start script
+  when: pgpool2_pgpool_remote_start_src is defined
+  template:
+    src: "{{ pgpool2_pgpool_remote_start_src }}"
+    dest: "{{ pgpool2_pgpool_remote_start_dest }}"
+    owner: postgres
+    group: postgres
+    mode: 0755
+
+- name: create cache dir
+  file:
+    path: /var/log/pgpool/oiddir
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: 0755
+  when: pgpool2_memory_cache_enabled | default(false)
+
+- name: Generate passwordless ssh access
+  when:
+    - ansible_distribution == "Debian"
+    - ansible_distribution_major_version == "9"
+    - not ansible_check_mode
+  block:
+    - name: postgres .ssh folder
+      file:
+        path: "{{ postgres_home }}/.ssh"
+        state: directory
+    - name: copy id_rsa
+      copy:
+        content: "{{ postgres_id_rsa }}"
+        dest: "{{ postgres_home }}/.ssh/id_rsa"
+        owner: postgres
+        group: postgres
+        mode: 0600
+    - name: copy id_rsa.pub
+      copy:
+        content: "{{ postgres_id_rsa_pub }}"
+        dest: "{{ postgres_home }}/.ssh/id_rsa.pub"
+        owner: postgres
+        group: postgres
+        mode: 0600
+    - name: add to authorized_key
+      authorized_key:
+        user: postgres
+        state: present
+        key: "{{ postgres_id_rsa_pub }}"
+
+- name: Generate passwordless ssh access
+  when:
+    - ansible_distribution == "Debian"
+    - ansible_distribution_major_version == "10"
+    - not ansible_check_mode
+  block:
+    - name: postgres .ssh folder
+      file:
+        path: "{{ postgres_home }}/.ssh"
+        state: directory
+        owner: postgres
+        group: postgres
+        mode: 0700
+
+    - name: generate ssh keypair
+      openssh_keypair:
+        path: "{{ postgres_home }}/.ssh/id_rsa"
+        owner: postgres
+        group: postgres
+        mode: 0600
+        size: 4096
+      register: postgres_keypair
+
+    - name: set .ssh folder owner
+      file:
+        dest: "{{ postgres_home }}/.ssh/"
+        owner: postgres
+        group: postgres
+        recurse: yes
+
+    - name: add to authorized_key
+      authorized_key:
+        user: postgres
+        state: present
+        key: "{{ hostvars[item].postgres_keypair.public_key }}"
+      loop: "{{ groups[pg_cluster_group] }}"

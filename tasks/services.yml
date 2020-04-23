@@ -1,0 +1,36 @@
+- name: reload postgres
+  debug:
+    msg: reload postgres if postgres_reload is true
+  when: postgres_reload | default(false)
+  changed_when: true
+  notify: reload postgres
+
+- name: reload pgpool2
+  debug:
+    msg: reload pgpool2 if pgpool2_reload is true
+  when: pgpool2_reload | default(false)
+  changed_when: true
+  notify: reload pgpool2
+
+- name: reload db-cluster
+  debug:
+    msg: reload db cluster if db_cluster_reload is true
+  when: db_cluster_reload | default(false)
+  changed_when: true
+  notify:
+    - reload pgpool2
+    - reload postgres
+
+- name: restart db-cluster
+  debug:
+    msg: restart db cluster if db_cluster_restart is true
+  when: db_cluster_restart | default(false)
+  changed_when: true
+  notify: restart db-cluster
+
+- name: stop db-cluster
+  debug:
+    msg: stop db cluster if db_cluster_stop is true
+  when: db_cluster_stop | default(false)
+  changed_when: true
+  notify: stop db-cluster

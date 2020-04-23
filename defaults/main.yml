@@ -1,0 +1,204 @@
+---
+# general variables
+pg_cluster_group: pg_cluster
+# pg_floating_ip: 172.16.29.2
+py_psycopg2_pkg: python3-psycopg2
+
+######################### postgres related variables ##########################
+postgres_main_version: "11"
+postgres_pckg: "postgresql-{{ postgres_main_version }}"
+postgres_home: /var/lib/postgresql/
+postgres_data: "{{ postgres_home }}/{{ postgres_main_version }}/main/"
+postgres_cfg_path: /etc/postgresql/
+postgres_cfg_path_main: "{{ postgres_cfg_path }}/{{ postgres_main_version }}/main"
+postgres_cfg_src: "postgresql.conf.{{ postgres_main_version }}.j2"
+postgres_cfg_dest: "{{ postgres_cfg_path_main }}/postgresql.conf"
+postgres_hba_src: "pg_hba.conf.{{ postgres_main_version }}.j2"
+postgres_hba_dest: "{{ postgres_cfg_path_main }}/pg_hba.conf"
+postgres_replicator_user: replicator
+postgres_service_name: postgresql
+postgres_replication_nic: eth1
+postgres_user: postgres
+# insecure
+postgres_user_pass: secret
+postgres_user_local_hba_method: md5
+postgres_sudoers: |
+  postgres ALL=(ALL:ALL) NOPASSWD:/bin/systemctl start postgresql.service
+  postgres ALL=(ALL:ALL) NOPASSWD:/bin/systemctl stop postgresql.service
+  postgres ALL=(ALL:ALL) NOPASSWD:{{ pgpool2_bin_ip_path }}
+  postgres ALL=(ALL:ALL) NOPASSWD:{{ pgpool2_bin_arping_path }}
+postgres_databases:
+  - name: test
+    owner: myuser
+    encoding: UTF8
+    # lc_collate: C.UTF-8
+    # lc_ctype: C.UTF-8
+    # template: template0
+postgres_users:
+  - name: myuser
+    password: mysecret
+postgres_extentions:
+  - name: pg_stat_statements
+    db: test
+
+# insecure
+postgres_hba_entries:
+  - type: local
+    database: test
+    user: myuser
+    method: md5
+  - type: host
+    database: all
+    user: postgres
+    address: "samenet"
+    method: md5
+  - type: host
+    database: replication
+    user: replicator
+    address: samehost
+    method: reject
+  - type: host
+    database: replication
+    user: replicator
+    address: samenet
+    method: trust
+  - type: host
+    database: test
+    user: myuser
+    address: samenet
+    method: md5
+
+## postgresql.conf ##
+postgres_listen_addresses: '*'
+postgres_port: 5433
+postgres_max_stack_depth: 2MB
+postgres_shared_preload_libraries: pg_stat_statements
+postgres_bgwriter_delay: 200ms
+postgres_bgwriter_flush_after: 512kB
+postgres_synchronous_commit: "on"
+postgres_wal_compression: "off"
+postgres_wal_log_hints: "off"
+postgres_checkpoint_timeout: 5min
+postgres_max_wal_size: 1GB
+postgres_min_wal_size: 80MB
+postgres_checkpoint_completion_target: 0.5
+postgres_archive_mode: "off"
+postgres_archive_command: ''
+postgres_max_wal_senders: 10
+postgres_wal_keep_segments: 64
+postgres_hot_standby_feedback: "on"
+postgres_log_destination: stderr
+postgres_log_min_duration_statement: 10000
+postgres_track_io_timing: "off"
+postgres_track_functions: pl
+postgres_max_connections: 100
+postgres_shared_buffers: 128MB
+postgres_huge_pages: "try"
+postgres_work_mem: 4MB
+postgres_maintenance_work_mem: 64MB
+postgres_effective_io_concurrency: 1
+postgres_max_worker_processes: 8
+postgres_max_parallel_maintenance_workers: 2
+postgres_max_parallel_workers_per_gather: 2
+postgres_max_parallel_workers: 8
+postgres_hot_standby: "on"
+postgres_enable_partitionwise_join: "off"
+postgres_enable_partitionwise_aggregate: "off"
+postgres_effective_cache_size: 4GB
+## locale
+# postgres_log_timezone: "America/Costa_Rica"
+# postgres_datestyle: "iso, dmy"
+# postgres_timezone: "America/Costa_Rica"
+# postgres_lc_messages: es_CR.UTF-8
+# postgres_lc_monetary: es_CR.UTF-8
+# postgres_lc_numeric: es_CR.UTF-8
+# postgres_lc_time: es_CR.UTF-8
+# postgres_default_text_search_config: pg_catalog.spanish
+## end postgresql.conf ##
+
+########################## pgpool2 related variables ##########################
+pgpool2_main_version: "4.0"
+pgpool2_cfg_path: /etc/pgpool2/
+pgppol2_cfg_dest: "{{ pgpool2_cfg_path }}/pgpool.conf"
+pgpool2_service_name: pgpool2
+pgpool2_bin_ip_path: /bin/ip
+pgpool2_bin_arping_path: /usr/sbin/arping
+pgpool2_pg_ctl: /usr/bin/pg_ctlcluster
+pgppol2_cfg_src: "pgpool.conf.{{ pgpool2_main_version }}.j2"
+pgppol2_hba_src: "pool_hba.conf.{{ pgpool2_main_version }}.j2"
+pgppol2_hba_dest: "{{ pgpool2_cfg_path }}/pool_hba.conf"
+pgpool2_failover_src: "failover.sh.{{ pgpool2_main_version }}.j2"
+pgpool2_failover_dest: "{{ postgres_data }}/failover.sh"
+pgpool2_failback_src: "failback.sh.{{ pgpool2_main_version }}.j2"
+pgpool2_failback_dest: "{{ postgres_data }}/failback.sh"
+pgpool2_pgpool_remote_start_src: "pgpool_remote_start.{{ pgpool2_main_version }}.j2"
+pgpool2_pgpool_remote_start_dest: "{{ postgres_data }}/pgpool_remote_start"
+pgpool2_recovery_1st_stage_src: "recovery_1st_stage.{{ pgpool2_main_version }}.j2"
+pgpool2_recovery_1st_stage_dest: "{{ postgres_data }}/recovery_1st_stage"
+pgpool2_floating_nic: eth0
+pgpool2_floating_nic_label: "{{ pgpool2_floating_nic }}:0"
+
+# insecure
+pgpool2_hba_entries:
+  - type: host
+    database: all
+    user: postgres
+    address: "samenet"
+    method: md5
+  - type: host
+    database: test
+    user: myuser
+    address: samenet
+    method: md5
+
+## pgpool.conf ##
+pgpool2_listen_addresses: '*'
+pgpool2_port: 5432
+pgpool2_socket_dir: /var/run/postgresql
+pgpool2_listen_backlog_multiplier: 2
+pgpool2_serialize_accept: "off"
+# pgpool2_backend_hostname: "{{ ansible_default_ipv4.address }}"
+pgpool2_backend_weight: 1
+pgpool2_backend_data_directory: "/var/lib/postgresql/{{ postgres_main_version }}/main"
+pgpool2_backend_flag: ALLOW_TO_FAILOVER
+pgpool2_enable_pool_hba: "on"
+pgpool2_num_init_children: '32'
+pgpool2_max_pool: '4'
+pgpool2_child_life_time: '0'
+pgpool2_child_max_connections: '2000'
+pgpool2_connection_life_time: '0'
+pgpool2_client_idle_limit: 0
+pgpool2_log_connections: 'on'
+pgpool2_log_hostname: 'on'
+pgpool2_log_standby_delay: if_over_threshold
+pgpool2_load_balance_mode: "on"
+pgpool2_master_slave_mode: "on"
+pgpool2_sr_check_period: 10
+pgpool2_sr_check_user: "{{ postgres_user }}"
+pgpool2_sr_check_password: "{{ postgres_user_pass }}"
+pgpool2_delay_threshold: 1000000
+pgpool2_health_check_period: 5
+pgpool2_health_check_user: "{{ postgres_user }}"
+pgpool2_health_check_password: "{{ postgres_user_pass }}"
+pgpool2_health_check_max_retries: 1
+pgpool2_failover_command: "{{ pgpool2_failover_dest }} %d %h %p %D %m %H %M %P %r %R"
+pgpool2_failback_command: "{{ pgpool2_failback_dest }} %d %h %p %D %m"
+pgpool2_failover_on_backend_error: "off" # check
+pgpool2_recovery_user: "{{ postgres_user }}"
+pgpool2_recovery_password: "{{ postgres_user_pass }}"
+pgpool2_recovery_1st_stage_command: "{{ pgpool2_recovery_1st_stage_dest | basename }}"
+pgpool2_use_watchdog: "on"
+pgpool2_trusted_servers: ""
+# pgpool2_wd_hostname: "{{ ansible_default_ipv4.address }}"
+pgpool2_wd_authkey: "secret"
+pgpool2_delegate_IP: "{{ pg_floating_ip }}"
+pgpool2_if_cmd_path: "/usr/bin"
+pgpool2_if_up_cmd: "sudo {{ pgpool2_bin_ip_path }} addr add $_IP_$/24 dev {{ pgpool2_floating_nic }} label {{ pgpool2_floating_nic_label }}"
+pgpool2_if_down_cmd: "sudo {{ pgpool2_bin_ip_path }} addr del $_IP_$/24 dev {{ pgpool2_floating_nic }} label {{ pgpool2_floating_nic_label }}"
+pgpool2_arping_path: "/usr/bin"
+pgpool2_arping_cmd: "sudo {{ pgpool2_bin_arping_path }} -U $_IP_$ -c 1"
+pgpool2_wd_interval: '5'
+# pgpool2_heartbeat_destination: "{{ ansible_default_ipv4.address }}"
+# pgpool2_other_pgpool_hostname: "{{ ansible_default_ipv4.address }}"
+pgpool2_relcache_size: '256'
+## end pgpool.conf ##

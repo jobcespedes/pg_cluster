@@ -1,0 +1,21 @@
+---
+language: python
+services:
+  - docker
+
+python: 3
+
+env:
+  global:
+    - ROLE_NAME: pg_cluster
+    - GALAXY_ROLE_NAME: >-
+        jobcespedes.pg_cluster
+  matrix:
+    - DISTRO: debian10
+
+before_install: "./test/scripts/before-install.sh"
+install: "./test/scripts/install.sh"
+script: "./test/scripts/test-role.sh"
+
+notifications:
+  webhooks: https://galaxy.ansible.com/api/v1/notifications/

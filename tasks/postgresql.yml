@@ -1,0 +1,58 @@
+- name: Gather package facts
+  package_facts:
+    manager: auto
+
+- set_fact:
+    psycopg2_
+
+- name: install postgres
+  register: postgres_installation
+  package:
+    name:
+      - "postgresql-{{ postgres_main_version }}"
+      # - postgresql-contrib
+      # - postgresql-server-dev-all
+      - libpq-dev
+      - "{{ py_psycopg2_pkg }}"
+      - pgtop
+    state: present
+
+- name: service postgres disabled
+  service:
+   name: "{{ postgres_service_name }}"
+   enabled: no
+
+- name: copy postgres config files
+  when: postgres_cfg_files_src is defined
+  copy:
+    src: "{{ postgres_cfg_files_src }}"
+    dest: "{{ postgres_cfg_path }}/"
+
+- name: config postgresql.conf
+  when: postgres_cfg_src is defined
+  template:
+    src: "{{ postgres_cfg_src }}"
+    dest: "{{ postgres_cfg_dest }}"
+    owner: postgres
+    group: postgres
+    mode: 0644
+    backup: yes
+
+- name: allow postgres user to run sudo commands
+  blockinfile:
+    dest: /etc/sudoers.d/postgres
+    content: "{{ postgres_sudoers }}"
+    state: present
+    create: yes
+
+- include_tasks: pg_hba.yml
+
+- name: "Set permisions for postgres files"
+  loop:
+    - "{{ postgres_home }}"
+    - "{{ postgres_cfg_path }}"
+  file:
+    dest: "{{ item }}"
+    owner: postgres
+    group: postgres
+    recurse: yes

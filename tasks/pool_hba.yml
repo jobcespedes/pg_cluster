@@ -1,0 +1,10 @@
+- name: config pool_hba.conf
+  when: pgpool2_hba_entries is defined
+  notify: reload pgpool2
+  template:
+    src: "{{ pgppol2_hba_src }}"
+    dest: "{{ pgppol2_hba_dest }}"
+    owner: postgres
+    group: postgres
+    mode: 0644
+    backup: "{{ template_backup | default(true) }}"

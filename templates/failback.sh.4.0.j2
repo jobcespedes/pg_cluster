@@ -1,0 +1,15 @@
+#!/bin/bash
+# This script is run when a node failback.
+
+set -o xtrace
+exec > >(logger -i -p local1.info) 2>&1
+
+d=$1                            #   %d = node id
+h=$2                            #   %h = host name
+p=$3                            #   %p = port number
+D=$4                            #   %D = database cluster path
+m=$5                            #   %m = new master node id
+
+logger -i -p local1.info failback: for node $(hostname)
+logger -i -p local1.info failback: ID ${d} Hostname = ${h} Port = ${p} database cluster path =  ${D}
+logger -i -p local1.info failback: New master node has ID:${m}

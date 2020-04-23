@@ -1,0 +1,8 @@
+---
+- name: Converge
+  hosts: pg_cluster
+  roles:
+    - role: >-
+        {{ lookup('env','GALAXY_ROLE_NAME') |
+        default( playbook_dir | dirname |
+        dirname | basename, true ) }}

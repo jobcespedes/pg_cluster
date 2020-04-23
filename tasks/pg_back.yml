@@ -1,0 +1,52 @@
+- when: pg_back_config is defined
+  block:
+  - name: install git
+    package:
+      name: git
+      state: present
+
+  - name: "Ensure pg backups dest exists"
+    when: pg_back_dumps_dest is defined
+    file:
+      path: "{{ pg_back_dumps_dest }}"
+      state: directory
+      owner: postgres
+      group: postgres
+
+  - name: "Ensure directory exists for pg_back"
+    file:
+      path: "{{ pg_back_config.git.dest }}"
+      state: directory
+      owner: postgres
+      group: postgres
+
+  - name: Get updated files from pg_back git repository
+    git:
+      repo: "{{ pg_back_config.git.repo }}"
+      dest: "{{ pg_back_config.git.dest }}"
+      depth: "{{ pg_back_config.git.depth | default(omit) }}"
+      version: "{{ pg_back_config.git.version | default(omit) }}"
+      force: "{{ pg_back_config.git.force | default(omit) }}"
+
+  - name: "Set permissions"
+    file:
+      path: "{{ pg_back_config.git.dest }}"
+      state: directory
+      owner: postgres
+      group: postgres
+      recurse: true
+
+  - name: set pg_back cron job
+    when: pg_back_cron_install | default(false) and pg_back_config.cron is defined
+    cron:
+      name: "{{ pg_back_config.cron.name | default(omit) }}"
+      minute: "{{ pg_back_config.cron.minute | default(omit) }}"
+      hour: "{{ pg_back_config.cron.hour | default(omit) }}"
+      day: "{{ pg_back_config.cron.day | default(omit) }}"
+      month: "{{ pg_back_config.cron.month | default(omit) }}"
+      weekday: "{{ pg_back_config.cron.weekday | default(omit) }}"
+      user: "{{ pg_back_config.cron.user | default(omit) }}"
+      job: "{{ pg_back_config.cron.job | default(omit) }}"
+      cron_file: "{{ pg_back_config.cron.cron_file | default(omit) }}"
+      disabled: "{{ pg_back_config.cron.disabled | default(omit) }}"
+      state: "{{ pg_back_config.cron.state | default(omit) }}"

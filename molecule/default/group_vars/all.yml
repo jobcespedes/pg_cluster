@@ -1,0 +1,6 @@
+# ansible related variables
+ansible_python_interpreter: /usr/bin/python3
+
+# general pg_cluster variables
+## default floating ip is the next IP from the last node 
+pg_floating_ip: "{{ hostvars[groups[pg_cluster_group][0]].ansible_default_ipv4.address | ipmath(groups[pg_cluster_group] | length) }}"

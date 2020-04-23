@@ -1,0 +1,37 @@
+#!/bin/bash
+# This script is run after recovery_1st_stage to start Standby node.
+
+set -o xtrace
+exec > >(logger -i -p local1.info) 2>&1
+
+DEST_NODE_HOST="$1"
+DEST_NODE_PGDATA="$2"
+
+# check if NEW_MASTER_NODE_HOST equal 'localhost', as when node uses a unix socket
+if [[ $DEST_NODE_HOST == "localhost" ]]; then
+    logger -i -p local1.info pgpool_remote_start: using floating IP for remote host
+    DEST_NODE_HOST="{{ pg_floating_ip }}"
+fi
+
+logger -i -p local1.info pgpool_remote_start: start: remote start Standby node PostgreSQL@$DEST_NODE_HOST
+
+## Test passwordless SSH
+ssh -T -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null postgres@${DEST_NODE_HOST} ls /tmp > /dev/null
+
+if [ $? -ne 0 ]; then
+    logger -i -p local1.error pgpool_remote_start: passwordless SSH to postgres@${DEST_NODE_HOST} failed. Please setup passwordless SSH.
+    exit 1
+fi
+
+## Start Standby node
+ssh -T -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null postgres@$DEST_NODE_HOST "
+    sudo /bin/systemctl start postgresql.service
+"
+
+if [ $? -ne 0 ]; then
+    logger -i -p local1.error pgpool_remote_start: PostgreSQL@$DEST_NODE_HOST start failed.
+    exit 1
+fi
+
+logger -i -p local1.info pgpool_remote_start: end: PostgreSQL@$DEST_NODE_HOST started successfully.
+exit 0

@@ -1,0 +1,24 @@
+- when:
+    - pcp_command is defined
+  run_once: true
+  block:
+  - name: online recovery
+    shell: "{{ pcp_command }} -d -w -h {{ pg_floating_ip }} -p 9898 -U {{ postgres_user }} -n {{ pgpool2_node | default('') }}"
+    async: 60
+    poll: 0
+    register: command_run
+
+  - name: check recovery status
+    async_status:
+      jid: "{{ command_run.ansible_job_id }}"
+    register: command_result
+    until: command_result.finished
+    retries: 30
+    delay: 10
+
+  - debug:
+      msg: "{{ command_result }}"
+    when:
+      - "'Command Successful' not in command_result.stdout"
+    failed_when:
+      "'Command Successful' not in command_result.stdout"

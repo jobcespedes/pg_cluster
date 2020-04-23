@@ -1,0 +1,62 @@
+- include_tasks: pg_hba.yml
+  vars:
+    postgres_user_local_hba_method: peer
+    template_backup: false
+
+- name: restart postgres
+  service:
+    name: "{{ postgres_service_name }}"
+    state: restarted
+
+- include_tasks: users.yml
+  vars:
+    pg_cluster_only_add_main_users: true
+
+- include_tasks: pg_hba.yml
+  vars:
+    template_backup: false
+
+- name: reload postgres
+  service:
+    name: "{{ postgres_service_name }}"
+    state: reloaded
+
+- name: restart pgpool2
+  service:
+    name: "{{ pgpool2_service_name }}"
+    state: restarted
+
+- name: "wait for db floating ip"
+  wait_for:
+    host: "{{ pg_floating_ip }}"
+    port: 5432
+
+- name: add pg extension
+  run_once: true
+  become: yes
+  become_user: postgres
+  postgresql_ext:
+    name: "{{ item }}"
+    db: template1
+    port: "{{ postgres_port }}"
+  loop:
+    - pgpool_recovery
+    - pgpool_regclass
+
+- pause:
+    seconds: 3
+
+- include: pcp_command.yml
+  when: my_idx != 0
+  vars:
+    pcp_command: pcp_recovery_node
+    pgpool2_node: "{{ my_idx }}"
+  loop: "{{ groups[pg_cluster_group] }}"
+  loop_control:
+    index_var: my_idx
+
+- set_fact:
+    pg_cluster_only_add_other_users: true
+
+- pause:
+    seconds: 3

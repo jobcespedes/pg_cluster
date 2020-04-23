@@ -1,0 +1,39 @@
+---
+# tasks file for pg_cluster
+- include: postgresql.yml
+  tags: postgresql
+
+- include: pgpool2.yml
+  tags: pgpool2
+
+- name: bootstrap pg cluster
+  when:
+    - postgres_installation is defined
+    - postgres_installation is changed
+    - ansible_play_batch | length == ansible_play_hosts_all | length
+    - ansible_play_hosts_all | length == groups[pg_cluster_group] | length
+    - postgres_pckg not in ansible_facts.packages
+    - "'pgpool2' not in ansible_facts.packages"
+  include: bootstrap.yml
+  tags: bootstrap
+
+- include: pg_back.yml
+  tags: pg_back
+
+- include: users.yml
+  tags: users
+
+- include: databases.yml
+  tags: databases
+
+- include: extensions.yml
+  tags: extensions
+
+- include: services.yml
+  tags:
+    - postgresql
+    - pgpool2
+    - bootstrap
+    - users_dbs
+    - pg_back
+    - services

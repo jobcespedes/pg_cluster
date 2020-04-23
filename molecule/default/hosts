@@ -1,0 +1,3 @@
+[pg_cluster]
+pg-master
+pg-backup-[01:02]

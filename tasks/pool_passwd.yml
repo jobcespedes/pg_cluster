@@ -1,0 +1,16 @@
+- name: check stats of pool_passwd
+  stat:
+    path: /etc/pgpool2/pool_passwd
+  register: pool_passwd_file
+
+- name: "add user to pool_passwd"
+  command: "pg_md5 -m -u {{ pool_passwd_user_name }} '{{ pool_passwd_user_pass }}'"
+  changed_when: false
+  no_log: true
+
+- name: recheck stats of pool_passwd
+  stat:
+    path: /etc/pgpool2/pool_passwd
+  register: pool_passwd_file_after
+  changed_when: pool_passwd_file.stat.checksum != pool_passwd_file_after.stat.checksum
+  notify: reload pgpool2

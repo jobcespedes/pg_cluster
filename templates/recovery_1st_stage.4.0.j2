@@ -1,0 +1,55 @@
+#!/bin/bash
+# This script is executed by "recovery_1st_stage" to recovery a Standby node.
+
+set -o xtrace
+exec > >(logger -i -p local1.info) 2>&1
+
+PRIMARY_NODE_PGDATA="$1"
+DEST_NODE_HOST="$2"
+DEST_NODE_PGDATA="$3"
+PRIMARY_NODE_PORT="$4"
+DEST_NODE_PORT="{{ postgres_port }}"
+
+REP_IP="$(ip route | grep {{ postgres_replication_nic }} | sed -n 's/^.*src \([0-9.]*\) .*$/\1/p')"
+PGHOME="{{ postgres_cfg_path_main }}"
+REPL_USER="{{ postgres_replicator_user }}"
+RECOVERYCONF=${DEST_NODE_PGDATA}/recovery.conf
+
+# check if NEW_MASTER_NODE_HOST equal 'localhost', as when node uses a unix socket
+if [[ $DEST_NODE_HOST == "localhost" ]]; then
+    logger -i -p local1.info recovery_1st_stage: using floating IP for remote host
+    DEST_NODE_HOST="{{ pg_floating_ip }}"
+fi
+
+logger -i -p local1.info recovery_1st_stage: start: pg_basebackup for Standby node PostgreSQL@{$DEST_NODE_HOST}
+
+## Test passwordless SSH
+ssh -T -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null postgres@${DEST_NODE_HOST} ls /tmp > /dev/null
+
+if [ $? -ne 0 ]; then
+    logger -i -p local1.error recovery_1st_stage: passwordless SSH to postgres@${DEST_NODE_HOST} failed. Please setup passwordless SSH.
+    exit 1
+fi
+
+## Execute pg_basebackup to recovery Standby node
+ssh -T -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null postgres@$DEST_NODE_HOST "
+    set -o errexit
+    sudo /bin/systemctl stop postgresql.service
+    sleep 5
+    rm -rf $DEST_NODE_PGDATA
+    pg_basebackup -h ${REP_IP} -U ${REPL_USER} -p ${PRIMARY_NODE_PORT} -D ${DEST_NODE_PGDATA} -X stream
+    cat > ${RECOVERYCONF} << EOT
+standby_mode = 'on'
+primary_conninfo = 'host=${REP_IP} port=${PRIMARY_NODE_PORT} user=${REPL_USER}'
+recovery_target_timeline = 'latest'
+trigger_file = '${DEST_NODE_PGDATA}/trigger'
+EOT
+"
+
+if [ $? -ne 0 ]; then
+    logger -i -p local1.error recovery_1st_stage: end: pg_basebackup failed. online recovery failed
+    exit 1
+fi
+
+logger -i -p local1.info recovery_1st_stage: end: recovery_1st_stage complete
+exit 0

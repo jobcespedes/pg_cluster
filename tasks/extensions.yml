@@ -1,0 +1,25 @@
+- when:
+    - postgresql_user_login_host is not defined
+    - pg_floating_ip not in ansible_all_ipv4_addresses
+  set_fact:
+    postgresql_user_login_host: "{{ pg_floating_ip }}"
+
+- name: add pg extentions
+  become: yes
+  become_user: postgres
+  run_once: true
+  vars:
+    ansible_ssh_pipelining: true
+  postgresql_ext:
+    name: "{{ item.name }}"
+    db: "{{ item.db }}"
+    schema: "{{ item.schema | default(omit) }}"
+    cascade: "{{ item.cascade | default(omit) }}"
+    state: "{{ item.state | default(omit) }}"
+    role_attr_flags: "{{ item.role_attr_flags | default(omit) }}"
+    login_host: "{{ postgresql_user_login_host | default(omit) }}"
+    login_password: "{{ postgresql_login_password | default(omit) }}"
+    login_user: "{{ postgresql_login_user | default(omit) }}"
+    port: "{{ postgresql_user_port | default(postgres_port) }}"
+  loop: "{{ postgres_extentions }}"
+  when: postgres_extentions is defined

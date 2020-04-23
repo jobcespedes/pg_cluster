@@ -1,0 +1,25 @@
+- when:
+    - postgresql_user_login_host is not defined
+    - pg_floating_ip not in ansible_all_ipv4_addresses
+  set_fact:
+    postgresql_user_login_host: "{{ pg_floating_ip }}"
+
+- name: add databases
+  become: yes
+  become_user: postgres
+  run_once: true
+  vars:
+    ansible_ssh_pipelining: true
+  postgresql_db:
+    name: "{{ item.name }}"
+    owner: "{{ item.owner | default(omit) }}"
+    encoding: "{{ item.encoding | default(omit) }}"
+    lc_collate: "{{ item.lc_collate | default(omit) }}"
+    lc_ctype: "{{ item.lc_ctype | default(omit) }}"
+    template: "{{ item.template | default(omit) }}"
+    login_host: "{{ postgresql_user_login_host | default(omit) }}"
+    login_password: "{{ postgresql_login_password | default(omit) }}"
+    login_user: "{{ postgresql_login_user | default(omit) }}"
+    port: "{{ postgresql_user_port | default(postgres_port) }}"
+  loop: "{{ postgres_databases }}"
+  when: postgres_databases is defined

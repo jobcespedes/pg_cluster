@@ -1,0 +1,10 @@
+- name: copy pg_hba
+  when: postgres_hba_entries is defined
+  notify: reload postgres
+  template:
+    src: "{{ postgres_hba_src }}"
+    dest: "{{ postgres_hba_dest }}"
+    owner: postgres
+    group: postgres
+    mode: 0640
+    backup: "{{ template_backup | default(true) }}"

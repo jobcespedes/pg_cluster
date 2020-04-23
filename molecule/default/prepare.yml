@@ -1,0 +1,16 @@
+---
+- name: Prepare
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Run the equivalent of "apt-get update" as a separate step
+      apt:
+        name:
+          - openssh-server
+          - python3-apt
+        update_cache: yes
+
+    - name: start ssh
+      service:
+        name: ssh
+        state: started
