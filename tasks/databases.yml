@@ -1,11 +1,13 @@
-- when:
+---
+- name: use floating ip as login host
+  when:
     - postgresql_user_login_host is not defined
     - pg_floating_ip not in ansible_all_ipv4_addresses
   set_fact:
     postgresql_user_login_host: "{{ pg_floating_ip }}"
 
 - name: add databases
-  become: yes
+  become: true
   become_user: postgres
   run_once: true
   vars:

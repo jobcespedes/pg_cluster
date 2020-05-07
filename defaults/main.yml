@@ -10,7 +10,8 @@ postgres_pckg: "postgresql-{{ postgres_main_version }}"
 postgres_home: /var/lib/postgresql/
 postgres_data: "{{ postgres_home }}/{{ postgres_main_version }}/main/"
 postgres_cfg_path: /etc/postgresql/
-postgres_cfg_path_main: "{{ postgres_cfg_path }}/{{ postgres_main_version }}/main"
+postgres_cfg_path_main:
+  "{{ postgres_cfg_path }}/{{ postgres_main_version }}/main"
 postgres_cfg_src: "postgresql.conf.{{ postgres_main_version }}.j2"
 postgres_cfg_dest: "{{ postgres_cfg_path_main }}/postgresql.conf"
 postgres_hba_src: "pg_hba.conf.{{ postgres_main_version }}.j2"
@@ -131,9 +132,11 @@ pgpool2_failover_src: "failover.sh.{{ pgpool2_main_version }}.j2"
 pgpool2_failover_dest: "{{ postgres_data }}/failover.sh"
 pgpool2_failback_src: "failback.sh.{{ pgpool2_main_version }}.j2"
 pgpool2_failback_dest: "{{ postgres_data }}/failback.sh"
-pgpool2_pgpool_remote_start_src: "pgpool_remote_start.{{ pgpool2_main_version }}.j2"
+pgpool2_pgpool_remote_start_src:
+  "pgpool_remote_start.{{ pgpool2_main_version }}.j2"
 pgpool2_pgpool_remote_start_dest: "{{ postgres_data }}/pgpool_remote_start"
-pgpool2_recovery_1st_stage_src: "recovery_1st_stage.{{ pgpool2_main_version }}.j2"
+pgpool2_recovery_1st_stage_src:
+  "recovery_1st_stage.{{ pgpool2_main_version }}.j2"
 pgpool2_recovery_1st_stage_dest: "{{ postgres_data }}/recovery_1st_stage"
 pgpool2_floating_nic: eth0
 pgpool2_floating_nic_label: "{{ pgpool2_floating_nic }}:0"
@@ -159,7 +162,8 @@ pgpool2_listen_backlog_multiplier: 2
 pgpool2_serialize_accept: "off"
 # pgpool2_backend_hostname: "{{ ansible_default_ipv4.address }}"
 pgpool2_backend_weight: 1
-pgpool2_backend_data_directory: "/var/lib/postgresql/{{ postgres_main_version }}/main"
+pgpool2_backend_data_directory:
+  "/var/lib/postgresql/{{ postgres_main_version }}/main"
 pgpool2_backend_flag: ALLOW_TO_FAILOVER
 pgpool2_enable_pool_hba: "on"
 pgpool2_num_init_children: '32'
@@ -181,20 +185,26 @@ pgpool2_health_check_period: 5
 pgpool2_health_check_user: "{{ postgres_user }}"
 pgpool2_health_check_password: "{{ postgres_user_pass }}"
 pgpool2_health_check_max_retries: 1
-pgpool2_failover_command: "{{ pgpool2_failover_dest }} %d %h %p %D %m %H %M %P %r %R"
+pgpool2_failover_command:
+  "{{ pgpool2_failover_dest }} %d %h %p %D %m %H %M %P %r %R"
 pgpool2_failback_command: "{{ pgpool2_failback_dest }} %d %h %p %D %m"
-pgpool2_failover_on_backend_error: "off" # check
+pgpool2_failover_on_backend_error: "off"
 pgpool2_recovery_user: "{{ postgres_user }}"
 pgpool2_recovery_password: "{{ postgres_user_pass }}"
-pgpool2_recovery_1st_stage_command: "{{ pgpool2_recovery_1st_stage_dest | basename }}"
+pgpool2_recovery_1st_stage_command:
+  "{{ pgpool2_recovery_1st_stage_dest | basename }}"
 pgpool2_use_watchdog: "on"
 pgpool2_trusted_servers: ""
 # pgpool2_wd_hostname: "{{ ansible_default_ipv4.address }}"
 pgpool2_wd_authkey: "secret"
 pgpool2_delegate_IP: "{{ pg_floating_ip }}"
 pgpool2_if_cmd_path: "/usr/bin"
-pgpool2_if_up_cmd: "sudo {{ pgpool2_bin_ip_path }} addr add $_IP_$/24 dev {{ pgpool2_floating_nic }} label {{ pgpool2_floating_nic_label }}"
-pgpool2_if_down_cmd: "sudo {{ pgpool2_bin_ip_path }} addr del $_IP_$/24 dev {{ pgpool2_floating_nic }} label {{ pgpool2_floating_nic_label }}"
+pgpool2_if_up_cmd:
+  "sudo {{ pgpool2_bin_ip_path }} addr add $_IP_$/24 dev
+  {{ pgpool2_floating_nic }} label {{ pgpool2_floating_nic_label }}"
+pgpool2_if_down_cmd:
+  "sudo {{ pgpool2_bin_ip_path }} addr del $_IP_$/24 dev
+  {{ pgpool2_floating_nic }} label {{ pgpool2_floating_nic_label }}"
 pgpool2_arping_path: "/usr/bin"
 pgpool2_arping_cmd: "sudo {{ pgpool2_bin_arping_path }} -U $_IP_$ -c 1"
 pgpool2_wd_interval: '5'

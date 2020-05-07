@@ -1,3 +1,4 @@
+---
 - name: copy pg_hba
   when: postgres_hba_entries is defined
   notify: reload postgres

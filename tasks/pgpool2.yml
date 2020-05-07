@@ -1,3 +1,4 @@
+---
 - name: install pgpool2
   register: pgpool2_installation
   package:
@@ -9,8 +10,8 @@
 
 - name: service pgpool disabled
   service:
-   name: "{{ pgpool2_service_name }}"
-   enabled: no
+    name: "{{ pgpool2_service_name }}"
+    enabled: false
 
 - name: create .pcppass
   when: postgres_user is defined and postgres_user_pass is defined
@@ -31,10 +32,18 @@
 
 - name: set facts for pgpool2 template
   set_fact:
-    pgpool2_backend_hostname: "{{ pgpool2_backend_hostname | default(ansible_default_ipv4.address) }}"
-    pgpool2_heartbeat_destination: "{{ pgpool2_heartbeat_destination | default(ansible_default_ipv4.address) }}"
-    pgpool2_other_pgpool_hostname: "{{ pgpool2_other_pgpool_hostname | default(ansible_default_ipv4.address) }}"
-    pgpool2_wd_hostname: "{{ pgpool2_other_pgpool_hostname | default(ansible_default_ipv4.address) }}"
+    pgpool2_backend_hostname:
+      "{{ pgpool2_backend_hostname
+      | default(ansible_default_ipv4.address) }}"
+    pgpool2_heartbeat_destination:
+      "{{ pgpool2_heartbeat_destination
+      | default(ansible_default_ipv4.address) }}"
+    pgpool2_other_pgpool_hostname:
+      "{{ pgpool2_other_pgpool_hostname
+      | default(ansible_default_ipv4.address) }}"
+    pgpool2_wd_hostname:
+      "{{ pgpool2_other_pgpool_hostname
+      | default(ansible_default_ipv4.address) }}"
 
 - name: config pgpool2.conf
   when: pgppol2_cfg_src is defined
@@ -44,14 +53,14 @@
     owner: postgres
     group: postgres
     mode: 0640
-    backup: yes
+    backup: true
 
 - include_tasks: pool_hba.yml
 
 - name: "Add {{ postgres_user }} line to pcp.conf"
   lineinfile:
     dest: '{{ pgpool2_cfg_path }}/pcp.conf'
-    create: yes
+    create: true
     state: present
     line: "{{ postgres_user }}:{{ postgres_user_pass | hash('md5') }}"
     regexp: "^{{ postgres_user }}:"
@@ -162,7 +171,7 @@
         dest: "{{ postgres_home }}/.ssh/"
         owner: postgres
         group: postgres
-        recurse: yes
+        recurse: true
 
     - name: add to authorized_key
       authorized_key:

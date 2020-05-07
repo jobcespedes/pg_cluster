@@ -1,3 +1,4 @@
+---
 - include_tasks: pg_hba.yml
   vars:
     postgres_user_local_hba_method: peer
@@ -33,7 +34,7 @@
 
 - name: add pg extension
   run_once: true
-  become: yes
+  become: true
   become_user: postgres
   postgresql_ext:
     name: "{{ item }}"
@@ -43,7 +44,8 @@
     - pgpool_recovery
     - pgpool_regclass
 
-- pause:
+- name: cautious waiting
+  pause:
     seconds: 3
 
 - include: pcp_command.yml
@@ -55,8 +57,10 @@
   loop_control:
     index_var: my_idx
 
-- set_fact:
+- name: other users left
+  set_fact:
     pg_cluster_only_add_other_users: true
 
-- pause:
+- name: cautious waiting
+  pause:
     seconds: 3

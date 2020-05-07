@@ -1,3 +1,4 @@
+---
 - when: pg_back_config is defined
   block:
   - name: install git
@@ -37,7 +38,8 @@
       recurse: true
 
   - name: set pg_back cron job
-    when: pg_back_cron_install | default(false) and pg_back_config.cron is defined
+    when:
+      pg_back_cron_install | default(false) and pg_back_config.cron is defined
     cron:
       name: "{{ pg_back_config.cron.name | default(omit) }}"
       minute: "{{ pg_back_config.cron.minute | default(omit) }}"

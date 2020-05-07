@@ -1,9 +1,7 @@
+---
 - name: Gather package facts
   package_facts:
     manager: auto
-
-- set_fact:
-    psycopg2_
 
 - name: install postgres
   register: postgres_installation
@@ -19,8 +17,8 @@
 
 - name: service postgres disabled
   service:
-   name: "{{ postgres_service_name }}"
-   enabled: no
+    name: "{{ postgres_service_name }}"
+    enabled: false
 
 - name: copy postgres config files
   when: postgres_cfg_files_src is defined
@@ -36,14 +34,14 @@
     owner: postgres
     group: postgres
     mode: 0644
-    backup: yes
+    backup: true
 
 - name: allow postgres user to run sudo commands
   blockinfile:
     dest: /etc/sudoers.d/postgres
     content: "{{ postgres_sudoers }}"
     state: present
-    create: yes
+    create: true
 
 - include_tasks: pg_hba.yml
 
@@ -55,4 +53,4 @@
     dest: "{{ item }}"
     owner: postgres
     group: postgres
-    recurse: yes
+    recurse: true

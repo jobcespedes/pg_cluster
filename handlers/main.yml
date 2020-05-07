@@ -5,7 +5,7 @@
     name: "{{ postgres_service_name }}"
     state: reloaded
   loop: "{{ ansible_play_batch }}"
-  run_once: True
+  run_once: true
   delegate_to: "{{ item }}"
 
 - name: reload pgpool2
@@ -13,7 +13,7 @@
     name: "{{ pgpool2_service_name }}"
     state: reloaded
   loop: "{{ ansible_play_batch }}"
-  run_once: True
+  run_once: true
   delegate_to: "{{ item }}"
 
 # stop or restart db-cluster
@@ -23,83 +23,86 @@
     - ansible_play_hosts_all | length == groups[pg_cluster_group] | length
   block:
     ## stop pgpool2 nodes where floating ip is not configured
-  - name: stop pgpool2 in pasive nodes
-    when: pg_floating_ip not in ansible_all_ipv4_addresses
-    service:
-      name: "{{ pgpool2_service_name }}"
-      state: stopped
-    listen:
-      - stop pgpool2
-      - stop postgres
-      - stop db-cluster
-      - restart db-cluster
+    - name: stop pgpool2 in pasive nodes
+      when: pg_floating_ip not in ansible_all_ipv4_addresses
+      service:
+        name: "{{ pgpool2_service_name }}"
+        state: stopped
+      listen:
+        - stop pgpool2
+        - stop postgres
+        - stop db-cluster
+        - restart db-cluster
     ## stop pgpool2 nodes where floating ip is configured
-  - name: stop pgpool2 in active node
-    when: pg_floating_ip in ansible_all_ipv4_addresses
-    register: db_handler_active
-    service:
-      name: "{{ pgpool2_service_name }}"
-      state: stopped
-    listen:
-      - stop pgpool2
-      - stop postgres
-      - stop db-cluster
-      - restart db-cluster
-  - name: ensure floating ip is down
-    when: pg_floating_ip in ansible_all_ipv4_addresses
-    shell:
-      ip addr del {{ pg_floating_ip }}/24 dev
-      {{ pgpool2_floating_nic }} label {{ pgpool2_floating_nic_label }}
-    ignore_errors: true
-    listen:
-      - stop pgpool2
-      - stop postgres
-      - stop db-cluster
-      - restart db-cluster
-  - wait_for:
-      timeout: 10
-    listen:
-      - stop pgpool2
-      - stop postgres
-      - stop db-cluster
-      - restart db-cluster
-  - name: stop postgresql
-    service:
-      name: "{{ postgres_service_name }}"
-      state: stopped
-    listen:
-      - stop db-cluster
-      - stop postgres
-      - restart db-cluster
-  - name: start postgresql
-    service:
-      name: "{{ postgres_service_name }}"
-      state: started
-    listen:
-      - restart db-cluster
-  - wait_for:
-      timeout: 5
-    listen:
-      - restart db-cluster
-  - name: start pgpool2 in pasive nodes
-    service:
-      name: "{{ pgpool2_service_name }}"
-      state: started
-    when:
-      db_handler_active is not defined or
-      db_handler_active is skipped
-    listen:
-      - restart db-cluster
-  - wait_for:
-      timeout: 10
-    listen:
-      - restart db-cluster
-  - name: start pgpool2 in active node
-    service:
-      name: "{{ pgpool2_service_name }}"
-      state: started
-    when:
-      - db_handler_active is defined
-      - db_handler_active is not skipped
-    listen:
-      - restart db-cluster
+    - name: stop pgpool2 in active node
+      when: pg_floating_ip in ansible_all_ipv4_addresses
+      register: db_handler_active
+      service:
+        name: "{{ pgpool2_service_name }}"
+        state: stopped
+      listen:
+        - stop pgpool2
+        - stop postgres
+        - stop db-cluster
+        - restart db-cluster
+    - name: ensure floating ip is down
+      when: pg_floating_ip in ansible_all_ipv4_addresses
+      command:
+        ip addr del {{ pg_floating_ip }}/24 dev
+        {{ pgpool2_floating_nic }} label {{ pgpool2_floating_nic_label }}
+      ignore_errors: true
+      listen:
+        - stop pgpool2
+        - stop postgres
+        - stop db-cluster
+        - restart db-cluster
+    - name: cautious waiting
+      wait_for:
+        timeout: 10
+      listen:
+        - stop pgpool2
+        - stop postgres
+        - stop db-cluster
+        - restart db-cluster
+    - name: stop postgresql
+      service:
+        name: "{{ postgres_service_name }}"
+        state: stopped
+      listen:
+        - stop db-cluster
+        - stop postgres
+        - restart db-cluster
+    - name: start postgresql
+      service:
+        name: "{{ postgres_service_name }}"
+        state: started
+      listen:
+        - restart db-cluster
+    - name: cautious waiting
+      wait_for:
+        timeout: 5
+      listen:
+        - restart db-cluster
+    - name: start pgpool2 in pasive nodes
+      service:
+        name: "{{ pgpool2_service_name }}"
+        state: started
+      when:
+        db_handler_active is not defined or
+        db_handler_active is skipped
+      listen:
+        - restart db-cluster
+    - name: cautious waiting
+      wait_for:
+        timeout: 10
+      listen:
+        - restart db-cluster
+    - name: start pgpool2 in active node
+      service:
+        name: "{{ pgpool2_service_name }}"
+        state: started
+      when:
+        - db_handler_active is defined
+        - db_handler_active is not skipped
+      listen:
+        - restart db-cluster

@@ -1,4 +1,6 @@
-- when:
+---
+- name: use floating ip as login host
+  when:
     - postgresql_user_login_host is not defined
     - pg_floating_ip not in ansible_all_ipv4_addresses
     - pg_cluster_only_add_main_users is not defined
@@ -7,85 +9,85 @@
 
 - when: pg_cluster_only_add_other_users is not defined
   block:
-  - name: create .pgpass for root
-    no_log: true
-    copy:
-      content: |
-        *:*:*:{{ postgres_user }}:{{ postgres_user_pass }}
-      dest: "/root/.pgpass"
-      mode: 0600
+    - name: create .pgpass for root
+      no_log: true
+      copy:
+        content: |
+          *:*:*:{{ postgres_user }}:{{ postgres_user_pass }}
+        dest: "/root/.pgpass"
+        mode: 0600
 
-  - name: create .pgpass for postgres
-    no_log: true
-    copy:
-      content: |
-        *:*:*:{{ postgres_user }}:{{ postgres_user_pass }}
-      dest: "{{ postgres_home }}/.pgpass"
-      mode: 0600
-      owner: postgres
-      group: postgres
+    - name: create .pgpass for postgres
+      no_log: true
+      copy:
+        content: |
+          *:*:*:{{ postgres_user }}:{{ postgres_user_pass }}
+        dest: "{{ postgres_home }}/.pgpass"
+        mode: 0600
+        owner: postgres
+        group: postgres
 
-  - include_tasks: pool_passwd.yml
-    loop: "{{ postgres_users }}"
-    vars:
-      pool_passwd_user_name: "{{ postgres_user }}"
-      pool_passwd_user_pass: "{{ postgres_user_pass }}"
+    - include_tasks: pool_passwd.yml
+      loop: "{{ postgres_users }}"
+      vars:
+        pool_passwd_user_name: "{{ postgres_user }}"
+        pool_passwd_user_pass: "{{ postgres_user_pass }}"
 
-  - name: "set {{ postgres_user }} user pass"
-    become: yes
-    become_user: postgres
-    when: postgres_user and postgres_user_pass
-    run_once: true
-    vars:
-      ansible_ssh_pipelining: true
-    postgresql_user:
-      name: "{{ postgres_user }}"
-      password: "{{ postgres_user_pass }}"
-      login_host: "{{ postgresql_user_login_host | default(omit) }}"
-      login_password: "{{ postgresql_login_password | default(omit) }}"
-      login_user: "{{ postgresql_login_user | default(omit) }}"
-      port: "{{ postgresql_user_port | default(postgres_port) }}"
+    - name: "set {{ postgres_user }} user pass"
+      become: true
+      become_user: postgres
+      when: postgres_user and postgres_user_pass
+      run_once: true
+      vars:
+        ansible_ssh_pipelining: true
+      postgresql_user:
+        name: "{{ postgres_user }}"
+        password: "{{ postgres_user_pass }}"
+        login_host: "{{ postgresql_user_login_host | default(omit) }}"
+        login_password: "{{ postgresql_login_password | default(omit) }}"
+        login_user: "{{ postgresql_login_user | default(omit) }}"
+        port: "{{ postgresql_user_port | default(postgres_port) }}"
 
-  - name: add replicator user
-    become: yes
-    become_user: postgres
-    when: postgres_replicator_user is defined
-    run_once: true
-    vars:
-      ansible_ssh_pipelining: true
-    postgresql_user:
-      name: "{{ postgres_replicator_user }}"
-      password: "{{ postgres_replicator_pass | default(omit) }}"
-      role_attr_flags: REPLICATION
-      login_host: "{{ postgresql_user_login_host | default(omit) }}"
-      login_password: "{{ postgresql_login_password | default(omit) }}"
-      login_user: "{{ postgresql_login_user | default(omit) }}"
-      port: "{{ postgresql_user_port | default(postgres_port) }}"
+    - name: add replicator user
+      become: true
+      become_user: postgres
+      when: postgres_replicator_user is defined
+      run_once: true
+      vars:
+        ansible_ssh_pipelining: true
+      postgresql_user:
+        name: "{{ postgres_replicator_user }}"
+        password: "{{ postgres_replicator_pass | default(omit) }}"
+        role_attr_flags: REPLICATION
+        login_host: "{{ postgresql_user_login_host | default(omit) }}"
+        login_password: "{{ postgresql_login_password | default(omit) }}"
+        login_user: "{{ postgresql_login_user | default(omit) }}"
+        port: "{{ postgresql_user_port | default(postgres_port) }}"
 
 - when:
-   - postgres_users is defined
-   - pg_cluster_only_add_main_users is not defined
+    - postgres_users is defined
+    - pg_cluster_only_add_main_users is not defined
   block:
-  - name: add users
-    become: yes
-    become_user: postgres
-    run_once: true
-    vars:
-      ansible_ssh_pipelining: true
-    postgresql_user:
-      name: "{{ item.name }}"
-      password: "{{ item.password | default(omit) }}"
-      role_attr_flags: "{{ item.role_attr_flags | default(omit) }}"
-      login_host: "{{ postgresql_user_login_host | default(omit) }}"
-      login_password: "{{ postgresql_login_password | default(omit) }}"
-      login_user: "{{ postgresql_login_user | default(omit) }}"
-      port: "{{ postgresql_user_port | default(postgres_port) }}"
-    loop: "{{ postgres_users }}"
-    register: db_add_users_state
-    no_log: true
+    - name: add users
+      become: true
+      become_user: postgres
+      run_once: true
+      vars:
+        ansible_ssh_pipelining: true
+      postgresql_user:
+        name: "{{ item.name }}"
+        password: "{{ item.password | default(omit) }}"
+        role_attr_flags: "{{ item.role_attr_flags | default(omit) }}"
+        login_host: "{{ postgresql_user_login_host | default(omit) }}"
+        login_password: "{{ postgresql_login_password | default(omit) }}"
+        login_user: "{{ postgresql_login_user | default(omit) }}"
+        port: "{{ postgresql_user_port | default(postgres_port) }}"
+      loop: "{{ postgres_users }}"
+      register: db_add_users_state
+      no_log: true
 
-  - include_tasks: pool_passwd.yml
-    loop: "{{ postgres_users }}"
-    vars:
-      pool_passwd_user_name: "{{ item.name }}"
-      pool_passwd_user_pass: "{{ item.password }}"
+    - include_tasks: pool_passwd.yml
+      loop: "{{ postgres_users }}"
+      vars:
+        pool_passwd_user_name: "{{ item.name }}"
+        pool_passwd_user_pass: "{{ item.password }}"

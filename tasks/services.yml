@@ -1,3 +1,4 @@
+---
 - name: reload postgres
   debug:
     msg: reload postgres if postgres_reload is true

@@ -19,7 +19,7 @@ Role Variables
 Dependencies
 ------------
 
-- Depends on other Ansible roles: no
+- Depends on other Ansible roles: false
 
 Example Playbook
 ----------------

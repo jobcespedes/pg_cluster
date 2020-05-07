@@ -3,7 +3,8 @@ allow_duplicates: false
 
 galaxy_info:
   author: Job Céspedes Ortiz
-  description: A database cluster using PostgreSQL 11, Pgpool-II 4.0 and Debian 10.
+  description:
+    A database cluster using PostgreSQL 11, Pgpool-II 4.0 and Debian 10.
   license: MIT
   min_ansible_version: 2.8
   platforms:
