@@ -30,6 +30,15 @@ Example Playbook
     - jobcespedes.pg_cluster
 ```
 
+For verifying installation
+```yaml
+- hosts: all
+  tasks:
+    - import_role:
+        name: jobcespedes.pg_cluster
+        tasks_from: verify
+```
+
 License
 -------
 
