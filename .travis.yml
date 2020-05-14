@@ -3,7 +3,7 @@ language: python
 services:
   - docker
 
-python: 3
+python: 3.6
 
 env:
   global:
