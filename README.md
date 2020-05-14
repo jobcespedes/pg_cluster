@@ -10,6 +10,7 @@ Requirements
 
 - Debian 10
 - openssh-server
+- netaddr
 
 Role Variables
 --------------
