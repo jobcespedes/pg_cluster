@@ -1,0 +1,103 @@
+---
+- name: asert pg_cluster
+  run_once: true
+  vars:
+    pg_pool_nodes_csv_file: /tmp/pg_pool_nodes.csv
+    node_count_config: "{{ groups[pg_cluster_group] | length }}"
+  block:
+    - name: clean pool node csv file
+      file:
+        path: "{{ pg_pool_nodes_csv_file }}"
+        state: absent
+
+    - name: check backend status
+      command:
+        "psql -h {{ pg_floating_ip }} -U postgres -c 'show pool_nodes;'
+         -A -F, -P footer=off"
+      register: pg_pool_nodes_csv
+
+    - name: save pool node csv file
+      copy:
+        content: "{{ pg_pool_nodes_csv.stdout }}\n"
+        dest: "{{ pg_pool_nodes_csv_file }}"
+
+    - name: convert  pool node csv file to json
+      read_csv:
+        path: "{{ pg_pool_nodes_csv_file }}"
+      register: pg_pool_nodes_csv
+
+    - name: assert first node is master
+      assert:
+        msg: "First node is not master"
+        quiet: true
+        that:
+          pg_pool_nodes_csv.list[0].role == 'primary'
+
+    - name: assert one node is master and the rest, standby
+      assert:
+        msg: "Roles are not ok"
+        quiet: true
+        that:
+          - ( pg_pool_nodes_csv.list | map(attribute='role') | join(' ')
+            | regex_findall('primary') | length ) == 1
+          - ( pg_pool_nodes_csv.list | map(attribute='role') | join(' ')
+            | regex_findall('standby') | length ) == (node_count_config
+            | int - 1)
+      loop: "{{ pg_pool_nodes_csv.list }}"
+
+    - name: assert node count is equal to original config
+      assert:
+        msg: "Node count does not match config"
+        quiet: true
+        that:
+          pg_pool_nodes_csv.list | length  ==  node_count_config | int
+
+    - name: assert all nodes status are up
+      assert:
+        msg: "Node: {{ item }} status is not up"
+        quiet: true
+        that:
+          - item.status == 'up'
+      loop: "{{ pg_pool_nodes_csv.list }}"
+
+    - name: assert all nodes are below replication delay threshold
+      when: pgpool2_delay_threshold is not false
+      assert:
+        msg: "Node: {{ item }} above replication threshold"
+        quiet: true
+        that:
+          - item.replication_delay|int <= pgpool2_delay_threshold
+      loop: "{{ pg_pool_nodes_csv.list }}"
+
+    - name: ckeck pg backends nodes count
+      vars:
+        pcp_command: pcp_node_count
+      include_tasks: pcp_command.yml
+
+    - name: ckeck watchdog info
+      vars:
+        pcp_command: pcp_watchdog_info
+        pcp_command_verbose: true
+      include_tasks: pcp_command.yml
+
+    - name: assert quorum exist for pgpool watchdog
+      assert:
+        quiet: true
+        that:
+          - "'Quorum state         : QUORUM EXIST' in command_result.stdout"
+        msg: "There is no quorum for pgpool cluster"
+
+    - name: assert there is a pgpool master in watchdog info
+      assert:
+        quiet: true
+        that:
+          - "'Status Name    : MASTER' in command_result.stdout"
+        msg: "There is no pgpool master"
+
+    - name: assert pgpool standby's match config in watchdog info
+      assert:
+        quiet: true
+        that:
+          - "(command_result.stdout | regex_findall('Status Name    : STANDBY')
+            | length) == (node_count_config | int - 1)"
+        msg: "Not enough pgpool standby's"

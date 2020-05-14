@@ -3,15 +3,17 @@
     - pcp_command is defined
   run_once: true
   block:
-    - name: online recovery
+    - name: run pcp command
       command:
-        "{{ pcp_command }} -d -w -h {{ pg_floating_ip }} -p 9898 -U
-        {{ postgres_user }} -n {{ pgpool2_node | default('') }}"
+        "{{ pcp_command }} {{ '-v ' if pcp_command_verbose is defined
+        else '' }}{{ '-d ' if pcp_command_debug is defined else '' }}
+        -w -h {{ pg_floating_ip }} -p 9898 -U {{ postgres_user }}
+         {{ '-n ' + pgpool2_node|string if pgpool2_node is defined else '' }}"
       async: 60
       poll: 0
       register: command_run
 
-    - name: check recovery status
+    - name: check command status
       async_status:
         jid: "{{ command_run.ansible_job_id }}"
       register: command_result
@@ -20,8 +22,14 @@
       delay: 10
 
     - debug:
-        msg: "{{ command_result }}"
+        msg: "{{ command_result.stdout_lines }}"
       when:
-        - "'Command Successful' not in command_result.stdout"
+        "(pcp_command_check_success | default(false) and
+        'Command Successful' not in command_result.stdout) or
+        'ERROR:' in command_result.stdout or
+        command_result.rc != 0"
       failed_when:
-        "'Command Successful' not in command_result.stdout"
+        "(pcp_command_check_success | default(false) and
+        'Command Successful' not in command_result.stdout) or
+        'ERROR:' in command_result.stdout or
+        command_result.rc != 0"

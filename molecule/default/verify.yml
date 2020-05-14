@@ -1,0 +1,10 @@
+---
+- name: Verify
+  hosts: all
+  tasks:
+    - import_role:
+        name: >-
+            {{ lookup('env','GALAXY_ROLE_NAME') |
+            default( playbook_dir | dirname |
+            dirname | basename, true ) }}
+        tasks_from: verify

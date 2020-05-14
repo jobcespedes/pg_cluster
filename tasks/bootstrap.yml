@@ -53,6 +53,7 @@
   vars:
     pcp_command: pcp_recovery_node
     pgpool2_node: "{{ my_idx }}"
+    pcp_command_check_success: true
   loop: "{{ groups[pg_cluster_group] }}"
   loop_control:
     index_var: my_idx

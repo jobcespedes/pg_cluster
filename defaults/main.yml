@@ -3,6 +3,14 @@
 pg_cluster_group: pg_cluster
 # pg_floating_ip: 172.16.29.2
 py_psycopg2_pkg: python3-psycopg2
+pg_net:
+  "{{ ( hostvars[groups[pg_cluster_group][0]].ansible_eth0.ipv4.network
+  + '/' + hostvars[groups[pg_cluster_group][0]].ansible_eth0.ipv4.netmask )
+  | ipaddr('network/prefix') }}"
+pg_replication_net:
+  "{{ ( hostvars[groups[pg_cluster_group][0]].ansible_eth1.ipv4.network
+  + '/' + hostvars[groups[pg_cluster_group][0]].ansible_eth1.ipv4.netmask )
+  | ipaddr('network/prefix') }}"
 
 ######################### postgres related variables ##########################
 postgres_main_version: "11"
@@ -51,7 +59,7 @@ postgres_hba_entries:
   - type: host
     database: all
     user: postgres
-    address: "samenet"
+    address: "{{ pg_net }}"
     method: md5
   - type: host
     database: replication
@@ -61,12 +69,12 @@ postgres_hba_entries:
   - type: host
     database: replication
     user: replicator
-    address: samenet
+    address: "{{ pg_replication_net }}"
     method: trust
   - type: host
     database: test
     user: myuser
-    address: samenet
+    address: "{{ pg_net }}"
     method: md5
 
 ## postgresql.conf ##
@@ -146,12 +154,12 @@ pgpool2_hba_entries:
   - type: host
     database: all
     user: postgres
-    address: "samenet"
+    address: "{{ pg_net }}"
     method: md5
   - type: host
     database: test
     user: myuser
-    address: samenet
+    address: "{{ pg_net }}"
     method: md5
 
 ## pgpool.conf ##
