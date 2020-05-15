@@ -1,0 +1,83 @@
+---
+- name: Side effect
+  hosts: all
+  tasks:
+    - name: failover all nodes except first node (actual primary) and second node (future primary)
+      when:
+        - node_id != 0
+        - node_id != 1
+      vars:
+        pcp_command: pcp_detach_node
+        pgpool2_node: "{{ node_id }}"
+        pcp_command_check_success: true
+        pg_cluster_group: pg_cluster
+      loop: "{{ groups[pg_cluster_group] }}"
+      loop_control:
+        index_var: node_id
+      include_role:
+        name: >-
+            {{ lookup('env','GALAXY_ROLE_NAME') |
+            default( playbook_dir | dirname |
+            dirname | basename, true ) }}
+        tasks_from: pcp_command
+
+    - name: failover first node (former primary) to promote second node (actual primary) instead
+      vars:
+        pcp_command: pcp_detach_node
+        pgpool2_node: 0
+        pcp_command_check_success: true
+        pg_cluster_group: pg_cluster
+      include_role:
+        name: >-
+            {{ lookup('env','GALAXY_ROLE_NAME') |
+            default( playbook_dir | dirname |
+            dirname | basename, true ) }}
+        tasks_from: pcp_command
+
+    - name: give time for primary failover to be completed
+      wait_for:
+          timeout: 15
+
+    - name: recover first node as standby
+      vars:
+        pcp_command: pcp_recovery_node
+        pgpool2_node: 0
+        pcp_command_check_success: true
+        pg_cluster_group: pg_cluster
+      include_role:
+        name: >-
+            {{ lookup('env','GALAXY_ROLE_NAME') |
+            default( playbook_dir | dirname |
+            dirname | basename, true ) }}
+        tasks_from: pcp_command
+
+    - name: failover second node (primary) to promote first node (id 0) instead
+      vars:
+        pcp_command: pcp_detach_node
+        pgpool2_node: 1
+        pcp_command_check_success: true
+        pg_cluster_group: pg_cluster
+      include_role:
+        name: >-
+            {{ lookup('env','GALAXY_ROLE_NAME') |
+            default( playbook_dir | dirname |
+            dirname | basename, true ) }}
+        tasks_from: pcp_command
+
+    - name: recover standby nodes
+      when:
+        - node_id != 0
+      vars:
+        pcp_command: pcp_recovery_node
+        pgpool2_node: "{{ node_id }}"
+        pcp_command_check_success: true
+        pg_cluster_group: pg_cluster
+      loop: "{{ groups[pg_cluster_group] }}"
+      loop_control:
+        index_var: node_id
+      include_role:
+        name: >-
+            {{ lookup('env','GALAXY_ROLE_NAME') |
+            default( playbook_dir | dirname |
+            dirname | basename, true ) }}
+        tasks_from: pcp_command
