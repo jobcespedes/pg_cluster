@@ -2,9 +2,20 @@
 - name: Verify
   hosts: all
   tasks:
-    - import_role:
+    - name: run verify task from role
+      import_role:
         name: >-
             {{ lookup('env','GALAXY_ROLE_NAME') |
             default( playbook_dir | dirname |
             dirname | basename, true ) }}
         tasks_from: verify
+
+    - name: verify cluster restart handler
+      vars:
+        db_cluster_restart: true
+      import_role:
+        name: >-
+            {{ lookup('env','GALAXY_ROLE_NAME') |
+            default( playbook_dir | dirname |
+            dirname | basename, true ) }}
+        tasks_from: services

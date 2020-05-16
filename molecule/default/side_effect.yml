@@ -2,7 +2,8 @@
 - name: Side effect
   hosts: all
   tasks:
-    - name: failover all nodes except first node (actual primary) and second node (future primary)
+    - name: failover all nodes except first node (primary) and
+        second node (standby)
       when:
         - node_id != 0
         - node_id != 1
@@ -21,7 +22,7 @@
             dirname | basename, true ) }}
         tasks_from: pcp_command
 
-    - name: failover first node (former primary) to promote second node (actual primary) instead
+    - name: failover first node (former primary) to promote second node instead
       vars:
         pcp_command: pcp_detach_node
         pgpool2_node: 0
@@ -36,7 +37,7 @@
 
     - name: give time for primary failover to be completed
       wait_for:
-          timeout: 15
+        timeout: 15
 
     - name: recover first node as standby
       vars:
