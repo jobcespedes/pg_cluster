@@ -6,3 +6,15 @@
         {{ lookup('env','GALAXY_ROLE_NAME') |
         default( playbook_dir | dirname |
         dirname | basename, true ) }}
+  post_tasks:
+    - name: trigger handler for restarting pg_cluster
+      tags:
+        - molecule-idempotence-notest
+      vars:
+        db_cluster_restart: true
+      include_role:
+        name: >-
+            {{ lookup('env','GALAXY_ROLE_NAME') |
+            default( playbook_dir | dirname |
+            dirname | basename, true ) }}
+        tasks_from: services
