@@ -36,6 +36,8 @@
   run_once: true
   become: true
   become_user: postgres
+  vars:
+    ansible_ssh_pipelining: true
   postgresql_ext:
     name: "{{ item }}"
     db: template1
