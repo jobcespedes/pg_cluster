@@ -190,9 +190,9 @@ syslog_ident = 'pgpool'
 
 # - Debug -
 
-#log_error_verbosity = default          # terse, default, or verbose messages
+{{ 'log_error_verbosity = ' + pgpool2_log_error_verbosity if pgpool2_log_error_verbosity is defined else '#log_error_verbosity = default' }}          # terse, default, or verbose messages
 
-#client_min_messages = notice           # values in order of decreasing detail:
+{{ 'client_min_messages = ' + pgpool2_client_min_messages if pgpool2_client_min_messages is defined else '#client_min_messages = notice' }}           # values in order of decreasing detail:
                                         #   debug5
                                         #   debug4
                                         #   debug3
@@ -203,7 +203,7 @@ syslog_ident = 'pgpool'
                                         #   warning
                                         #   error
 
-#log_min_messages = warning             # values in order of decreasing detail:
+{{ 'log_min_messages = ' + pgpool2_log_min_messages if pgpool2_log_min_messages is defined else '#log_min_messages = warning' }}             # values in order of decreasing detail:
                                         #   debug5
                                         #   debug4
                                         #   debug3

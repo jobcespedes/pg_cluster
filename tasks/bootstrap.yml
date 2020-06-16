@@ -9,29 +9,6 @@
     name: "{{ postgres_service_name }}"
     state: restarted
 
-- include_tasks: users.yml
-  vars:
-    pg_cluster_only_add_main_users: true
-
-- include_tasks: pg_hba.yml
-  vars:
-    template_backup: false
-
-- name: reload postgres
-  service:
-    name: "{{ postgres_service_name }}"
-    state: reloaded
-
-- name: restart pgpool2
-  service:
-    name: "{{ pgpool2_service_name }}"
-    state: restarted
-
-- name: "wait for db floating ip"
-  wait_for:
-    host: "{{ pg_floating_ip }}"
-    port: 5432
-
 - name: add pg extension
   run_once: true
   become: true
@@ -45,6 +22,34 @@
   loop:
     - pgpool_recovery
     - pgpool_regclass
+
+- include_tasks: users.yml
+  vars:
+    pg_cluster_only_add_main_users: true
+
+- include_tasks: pg_hba.yml
+  vars:
+    template_backup: false
+
+- name: stop postgres
+  service:
+    name: "{{ postgres_service_name }}"
+    state: stopped
+
+- name: restart pgpool2
+  service:
+    name: "{{ pgpool2_service_name }}"
+    state: restarted
+
+- name: "wait for db floating ip"
+  wait_for:
+    host: "{{ pg_floating_ip }}"
+    port: 5432
+
+- name: reload pgpool2
+  service:
+    name: "{{ pgpool2_service_name }}"
+    state: reloaded
 
 - name: cautious waiting
   pause:

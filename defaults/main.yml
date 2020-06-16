@@ -183,6 +183,9 @@ pgpool2_client_idle_limit: 0
 pgpool2_log_connections: 'on'
 pgpool2_log_hostname: 'on'
 pgpool2_log_standby_delay: if_over_threshold
+# pgpool2_log_error_verbosity: default
+# pgpool2_client_min_messages: notice
+# pgpool2_log_min_messages: warning
 pgpool2_load_balance_mode: "on"
 pgpool2_master_slave_mode: "on"
 pgpool2_sr_check_period: 10
