@@ -88,6 +88,7 @@
 
     - include_tasks: pool_passwd.yml
       loop: "{{ postgres_users }}"
+      no_log: true
       vars:
         pool_passwd_user_name: "{{ item.name }}"
         pool_passwd_user_pass: "{{ item.password }}"
