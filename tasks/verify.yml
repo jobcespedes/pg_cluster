@@ -20,6 +20,7 @@
       copy:
         content: "{{ pg_pool_nodes_csv.stdout }}\n"
         dest: "{{ pg_pool_nodes_csv_file }}"
+        mode: '0644'
 
     - name: convert  pool node csv file to json
       read_csv:

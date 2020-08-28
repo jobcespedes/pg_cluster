@@ -29,6 +29,7 @@
     dest: "{{ pgppol2_cfg_dest }}/"
     owner: postgres
     group: postgres
+    mode: preserve
 
 - name: set facts for pgpool2 template
   set_fact:
@@ -123,6 +124,7 @@
       file:
         path: "{{ postgres_home }}/.ssh"
         state: directory
+        mode: 0700
     - name: copy id_rsa
       copy:
         content: "{{ postgres_id_rsa }}"

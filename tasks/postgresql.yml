@@ -25,6 +25,7 @@
   copy:
     src: "{{ postgres_cfg_files_src }}"
     dest: "{{ postgres_cfg_path }}/"
+    mode: preserve
 
 - name: config postgresql.conf
   when: postgres_cfg_src is defined
@@ -42,6 +43,7 @@
     content: "{{ postgres_sudoers }}"
     state: present
     create: true
+    mode: '0644'
 
 - include_tasks: pg_hba.yml
 

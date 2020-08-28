@@ -13,6 +13,7 @@
       state: directory
       owner: postgres
       group: postgres
+      mode: '0700'
 
   - name: "Ensure directory exists for pg_back"
     file:
@@ -20,6 +21,7 @@
       state: directory
       owner: postgres
       group: postgres
+      mode: '0700'
 
   - name: Get updated files from pg_back git repository
     git:
@@ -36,6 +38,7 @@
       owner: postgres
       group: postgres
       recurse: true
+      mode: '0700'
 
   - name: set pg_back cron job
     when:
