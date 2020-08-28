@@ -24,6 +24,7 @@ platforms:
     published_ports:
       - "127.1.1.2:5432:5432"
     command: '/lib/systemd/systemd'
+    pre_build_image: true
   - name: pg-backup-01
     hostname: pg-backup-01
     image: geerlingguy/docker-${DISTRO:-debian10}-ansible
@@ -39,6 +40,7 @@ platforms:
     published_ports:
       - "127.1.1.3:5432:5432"
     command: '/lib/systemd/systemd'
+    pre_build_image: true
   - name: pg-backup-02
     hostname: pg-backup-02
     image: geerlingguy/docker-${DISTRO:-debian10}-ansible
@@ -54,6 +56,7 @@ platforms:
     published_ports:
       - "127.1.1.4:5432:5432"
     command: '/lib/systemd/systemd'
+    pre_build_image: true
 provisioner:
   name: ansible
   # log: true
