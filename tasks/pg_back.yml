@@ -30,6 +30,7 @@
       depth: "{{ pg_back_config.git.depth | default(omit) }}"
       version: "{{ pg_back_config.git.version | default(omit) }}"
       force: "{{ pg_back_config.git.force | default(omit) }}"
+      key_file: "{{ pg_back_config.git.key_file | default(omit) }}"
 
   - name: "Set permissions"
     file:
