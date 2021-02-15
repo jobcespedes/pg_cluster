@@ -83,20 +83,6 @@
         timeout: 5
       listen:
         - restart db-cluster
-    - name: start pgpool2 in pasive nodes
-      service:
-        name: "{{ pgpool2_service_name }}"
-        state: started
-      when:
-        db_handler_active is not defined or
-        db_handler_active is skipped
-      listen:
-        - restart db-cluster
-    - name: cautious waiting
-      wait_for:
-        timeout: 10
-      listen:
-        - restart db-cluster
     - name: start pgpool2 in active node
       service:
         name: "{{ pgpool2_service_name }}"
@@ -104,5 +90,19 @@
       when:
         - db_handler_active is defined
         - db_handler_active is not skipped
+      listen:
+        - restart db-cluster
+    - name: cautious waiting
+      wait_for:
+        timeout: 10
+      listen:
+        - restart db-cluster
+    - name: start pgpool2 in pasive nodes
+      service:
+        name: "{{ pgpool2_service_name }}"
+        state: started
+      when:
+        db_handler_active is not defined or
+        db_handler_active is skipped
       listen:
         - restart db-cluster
