@@ -86,6 +86,28 @@
       register: db_add_users_state
       no_log: true
 
+    - name: add database user privileges
+      become: true
+      become_user: postgres
+      run_once: true
+      vars:
+        ansible_ssh_pipelining: true
+      postgresql_privs:
+        db: "{{ item.db }}"
+        role: "{{ item.role }}"
+        objs: "{{ item.objs | default(omit) }}"
+        privs: "{{ item.privs | default(omit) }}"
+        schema: "{{ item.schema | default(omit) }}"
+        state: "{{ item.state | default(omit) }}"
+        type: "{{ item.type | default(omit) }}"
+        login_host: "{{ postgresql_user_login_port | default(omit) }}"
+        login_password: "{{ postgresql_login_password | default(omit) }}"
+        login_user: "{{ postgresql_login_user | default(omit) }}"
+        port: "{{ postgresql_user_port | default(postgres_port) }}"
+      loop: "{{ postgres_user_privileges }}"
+      when: postgres_user_privileges is defined
+      no_log: true
+
     - include_tasks: pool_passwd.yml
       loop: "{{ postgres_users }}"
       no_log: true
